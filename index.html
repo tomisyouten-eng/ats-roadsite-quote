@@ -1,0 +1,25 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>アラカワタイヤサービス｜出張料金見積もり</title><style>
+:root{font-family:system-ui,"Noto Sans JP",sans-serif;color:#202020;background:#f4f5f7}*{box-sizing:border-box}main{max-width:540px;margin:18px auto;padding:20px;background:white;border-radius:18px;box-shadow:0 2px 18px #0001}h1{font-size:23px;margin:0}header{background:#f9ad18;padding:18px;border-radius:12px;text-align:center}p{line-height:1.65}.small{font-size:13px;color:#555}button,.call{display:block;width:100%;padding:15px;margin:10px 0;border:0;border-radius:10px;background:#202020;color:white;font-size:17px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer}button.secondary{background:#ececec;color:#222}input{width:100%;padding:14px;border:1px solid #aaa;border-radius:9px;font-size:16px}label{display:block;margin:14px 0 6px;font-weight:700}.result{background:#f7f7f7;border-radius:12px;padding:16px;margin-top:18px}.price{font-size:32px;font-weight:800}.call{background:#168343}#status{min-height:24px;color:#8b3e00}#result{display:none}.line{display:flex;justify-content:space-between;gap:10px;padding:5px 0}.line strong{white-space:nowrap}</style></head><body><main><header><h1>アラカワタイヤサービス</h1><div>出張料金かんたん見積もり</div></header>
+<p>現在地、または出張先の住所から、当店までの<strong>車での片道走行距離</strong>を調べて概算料金を計算します。</p>
+<button id="gps">📍 現在地から自動見積もり</button>
+<label for="address">別の場所から見積もる（住所・施設名）</label><input id="address" placeholder="例：沖縄県島尻郡南風原町字宮平" autocomplete="street-address">
+<button class="secondary" id="byAddress">入力した場所から見積もる</button>
+<p id="status" role="status"></p>
+<section id="result" class="result" aria-live="polite"><div id="distance"></div><div id="time"></div><hr>
+<div class="line"><span>基本出張費</span><strong>5,500円</strong></div><div class="line"><span>距離加算</span><strong id="extra"></strong></div><div class="line"><span id="surchargeLabel">時間外加算</span><strong id="surcharge"></strong></div>
+<label style="font-weight:normal"><input id="spare" type="checkbox" checked style="width:auto"> スペアタイヤ交換（＋2,200円）</label>
+<div class="line"><span>現場作業</span><strong id="work"></strong></div><hr><div>概算合計（税込）</div><div class="price" id="total"></div>
+<p class="small">表示料金は見積もり時点の概算です。作業内容・出張可否・最終料金はお電話でご確認ください。タイヤ代・修理代・高速道路・駐車料金等は別途。深夜はタイヤ在庫の都合でスペアタイヤ交換が中心となる場合があります。</p>
+<a class="call" href="tel:0989271515">📞 電話で出張を依頼する<br>098-927-1515</a></section>
+<p class="small">※位置情報は許可した場合のみ取得します。自動距離計算には地図サービスの接続が必要です。接続前は金額を表示しません。</p>
+</main><script>
+const $=id=>document.getElementById(id);let meters=null;
+const yen=n=>n.toLocaleString('ja-JP')+'円';
+function tokyoHour(){return Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tokyo',hour:'2-digit',hourCycle:'h23'}).format(new Date()))}
+function draw(){if(meters===null)return;const h=tokyoHour(),km=meters/1000,extra=Math.max(0,Math.ceil((meters-5000)/1000))*220,night=h<9?5500:h>=19?3300:0,work=$('spare').checked?2200:0;
+$('distance').textContent='片道走行距離：約'+km.toFixed(1)+' km';$('time').textContent='見積時刻（日本時間）：'+new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit'}).format(new Date());
+$('extra').textContent=yen(extra);$('surchargeLabel').textContent=h<9?'深夜加算（0:00〜8:59）':h>=19?'夜間加算（19:00〜23:59）':'時間外加算';$('surcharge').textContent=yen(night);$('work').textContent=yen(work);$('total').textContent=yen(5500+extra+night+work);$('result').style.display='block'}
+async function estimate(origin){$('status').textContent='道路走行距離を確認しています…';$('result').style.display='none';meters=null;try{const res=await fetch('/api/route',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({origin})});const data=await res.json();if(!res.ok||!Number.isFinite(data.distanceMeters))throw Error(data.error||'距離を取得できませんでした');meters=data.distanceMeters;$('status').textContent='';draw()}catch(e){$('status').textContent='自動計算できません：'+e.message}}
+$('gps').onclick=()=>{if(!navigator.geolocation){$('status').textContent='この端末では位置情報を利用できません';return}$('status').textContent='位置情報の許可を確認しています…';navigator.geolocation.getCurrentPosition(p=>estimate({lat:p.coords.latitude,lng:p.coords.longitude}),e=>{$('status').textContent='位置情報を取得できません。住所入力をご利用ください。'},{enableHighAccuracy:true,timeout:12000,maximumAge:0})};
+$('byAddress').onclick=()=>{const a=$('address').value.trim();if(!a){$('status').textContent='住所・施設名を入力してください';return}estimate({address:a})};$('spare').onchange=draw;
+</script></body></html>
